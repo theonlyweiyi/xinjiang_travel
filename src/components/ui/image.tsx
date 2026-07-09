@@ -2,178 +2,61 @@
 
 import * as React from 'react';
 import { cn } from '@/lib/utils';
-type ImageFormat = 'jpg' | 'png' | 'webp' | 'bmp' | 'gif' | 'tiff';
 
 type NativeImgProps = React.ComponentPropsWithoutRef<'img'>;
 
 export interface ImageProps extends NativeImgProps {
-  quality?: number;
-  format?: ImageFormat;
-  breakpoints?: Array<number>;
-}
-
-const DEFAULT_QUALITY = 80;
-const DEFAULT_RESOLUTIONS: number[] = [
-  16, 32, 48, 64, 96, 128, 256, 384, 640, 750, 828, 1080, 1200, 1920, 2048,
-  3840,
-];
-
-const SRC_ALLOWLIST = [
-  '/runtime/api/v1/storage/object/',
-  '/aily/api/v1/feisuda/attachments/',
-  '/aily/api/v1/files/static/',
-];
-
-function getClosestResolution(target: number): number {
-  return DEFAULT_RESOLUTIONS.reduce((prev, curr) => {
-    return Math.abs(curr - target) < Math.abs(prev - target) ? curr : prev;
-  });
-}
-
-function applyParamsToUrl(
-  src: string,
-  params: Record<string, string | number | undefined>,
-): string {
-  const search = Object.entries(params)
-    .filter(([, v]) => v !== undefined && v !== null && v !== '')
-    .map(([k, v]) => {
-      return `${k},${v}`;
-    })
-    .join('/');
-  if (!search) return src;
-
-  const [pathAndQuery = '', hash] = src.split('#');
-  const [base, query] = pathAndQuery.split('?');
-  const urlParams = new URLSearchParams(query);
-  urlParams.set('x-tos-process', `image/${search}`);
-
-  return `${base}?${urlParams.toString()}${hash ? '#' + hash : ''}`;
-}
-
-function isTargetSrc(originSrc: string) {
-  return SRC_ALLOWLIST.some((item) => originSrc.includes(item));
-}
-
-function supportWebp() {
-  try {
-    return (
-      document
-        .createElement('canvas')
-        .toDataURL('image/webp')
-        .indexOf('data:image/webp') === 0
-    );
-  } catch (err) {
-    return false;
-  }
-}
-
-function buildSrcSet(
-  src: string,
-  widths: number[],
-  format: ImageFormat | undefined,
-  quality: number,
-  width?: number,
-  sizes?: string,
-): string | undefined {
-  if (!widths || widths.length === 0 || (!width && !sizes)) return undefined;
-  const fmt = format;
-  if (width) {
-    return [1, 2]
-      .map((dpr) => {
-        const targetWidth = getClosestResolution(width * dpr);
-        return `${applyParamsToUrl(src, { resize: `w_${targetWidth}`, quality: `Q_${quality}`, format: fmt })} ${dpr}x`;
-      })
-      .join(', ');
-  }
-  return widths
-    .map(
-      (w) =>
-        `${applyParamsToUrl(src, { resize: `w_${w}`, quality: `Q_${quality}`, format: fmt })} ${w}w`,
-    )
-    .join(', ');
+  alt: string;
 }
 
 export const Image = React.forwardRef<HTMLImageElement, ImageProps>(
-  (
-    {
-      src,
-      width,
-      height,
-      quality = DEFAULT_QUALITY,
-      format,
-      sizes,
-      srcSet: userSrcSet,
-      breakpoints = DEFAULT_RESOLUTIONS,
-      className,
-      loading = 'lazy',
-      decoding = 'async',
-      ...rest
-    },
-    ref,
-  ) => {
-    const defaultFormat = React.useMemo(
-      () => (supportWebp() ? 'webp' : undefined),
-      [],
-    );
+  ({ src, alt, className, loading = 'lazy', decoding = 'async', onError, ...rest }, ref) => {
+    const [isLoaded, setIsLoaded] = React.useState(false);
+    const [hasError, setHasError] = React.useState(false);
 
-    // 当 src 不在白名单时，直接渲染原生 img，保留所有原生属性
-    if (typeof src !== 'string' || !isTargetSrc(src)) {
-      return (
-        <img
-          {...rest}
-          ref={ref}
-          src={src}
-          width={width}
-          height={height}
-          sizes={sizes}
-          srcSet={userSrcSet}
-          className={cn(
-            'bg-linear-to-b from-gray-50/20 to-gray-200/20',
-            className,
-          )}
-          loading={loading}
-          decoding={decoding}
-        />
-      );
-    }
+    const handleLoad = () => {
+      setIsLoaded(true);
+    };
 
-    // 只有当 width 是数字类型时才进行 srcSet 优化
-    const numericWidth = typeof width === 'number' ? width : undefined;
-
-    // 用户传入的 srcSet 优先，否则生成优化的 srcSet
-    const srcSet =
-      userSrcSet ??
-      buildSrcSet(
-        src,
-        breakpoints,
-        format ?? (defaultFormat as ImageFormat),
-        quality,
-        numericWidth,
-        sizes,
-      );
-
-    const baseSrc = applyParamsToUrl(src, {
-      resize: numericWidth ? `w_${numericWidth}` : undefined,
-      quality: `Q_${quality}`,
-      format: format ?? defaultFormat,
-    });
+    const handleError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+      setHasError(true);
+      onError?.(e);
+    };
 
     return (
-      <img
-        {...rest}
-        ref={ref}
-        src={baseSrc}
-        width={width}
-        height={height}
-        sizes={sizes}
-        srcSet={srcSet}
-        className={cn(
-          'bg-linear-to-b from-gray-50/20 to-gray-200/20',
-          className,
+      <div className="relative overflow-hidden bg-gradient-to-br from-muted/50 to-muted">
+        {!isLoaded && !hasError && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="flex h-8 w-8 animate-spin items-center justify-center">
+              <div className="h-6 w-6 rounded-full border-2 border-primary/20 border-t-primary"></div>
+            </div>
+          </div>
         )}
-        loading={loading}
-        decoding={decoding}
-      />
+        
+        {hasError ? (
+          <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+            <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
+        ) : (
+          <img
+            {...rest}
+            ref={ref}
+            src={src}
+            alt={alt}
+            className={cn(
+              'h-full w-full object-cover transition-all duration-500',
+              isLoaded ? 'opacity-100' : 'opacity-0',
+              className,
+            )}
+            loading={loading}
+            decoding={decoding}
+            onLoad={handleLoad}
+            onError={handleError}
+          />
+        )}
+      </div>
     );
   },
 );

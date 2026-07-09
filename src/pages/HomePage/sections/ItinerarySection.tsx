@@ -179,7 +179,7 @@ function DayCard({ day, isOpen, onToggle }: { day: ITravelDay; isOpen: boolean; 
               </div>
 
               {/* 底部信息网格 */}
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid gap-3 sm:grid-cols-2">
                 {/* 住宿 */}
                 <div className="rounded-xl bg-secondary/20 p-4">
                   <div className="mb-1 flex items-center gap-2 text-xs font-semibold text-secondary-foreground">

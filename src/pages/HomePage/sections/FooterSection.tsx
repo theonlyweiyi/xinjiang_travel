@@ -2,28 +2,27 @@ import { motion } from 'framer-motion';
 import { Heart, Share2, Bookmark, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState, useEffect } from 'react';
-import { scopedStorage, resolveAppUrl } from '@lark-apaas/client-toolkit-lite';
 
-const STORAGE_KEY = 'xinjiang_guide_favorite';
+const STORAGE_KEY = '__travel_guide_favorite';
 
 export default function FooterSection() {
   const [isFavorited, setIsFavorited] = useState(false);
 
   useEffect(() => {
-    const saved = scopedStorage.getItem(STORAGE_KEY);
+    const saved = localStorage.getItem(STORAGE_KEY);
     setIsFavorited(saved === 'true');
   }, []);
 
   const handleFavorite = () => {
     const newValue = !isFavorited;
     setIsFavorited(newValue);
-    scopedStorage.setItem(STORAGE_KEY, String(newValue));
+    localStorage.setItem(STORAGE_KEY, String(newValue));
     toast.success(newValue ? '已收藏攻略' : '已取消收藏');
   };
 
   const handleShare = async () => {
     try {
-      const url = resolveAppUrl('/');
+      const url = window.location.href;
       await navigator.clipboard.writeText(url);
       toast.success('链接已复制到剪贴板');
     } catch {

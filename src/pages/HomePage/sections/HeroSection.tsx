@@ -115,7 +115,7 @@ export default function HeroSection() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.8 }}
-            className="text-4xl font-bold tracking-tight text-white drop-shadow-[0_2px_8px_rgba(0_0_0_0.5)] md:text-6xl lg:text-7xl"
+            className="text-3xl font-bold tracking-tight text-white drop-shadow-[0_2px_8px_rgba(0_0_0_0.5)] md:text-5xl lg:text-6xl"
           >
             新疆7天自驾游攻略
           </motion.h1>
